@@ -35,18 +35,43 @@ jobs:
       - name: Log in to GitHub Container Registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-      # 构建并推送 Docker 镜像到 GHCR
+      # 登录 Docker Hub（新增）
+      - name: Log in to Docker Hub
+        run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
+
+      # 构建并推送 Docker 镜像到 GHCR 和 Docker Hub
       - name: Build and Push Docker image
         run: |
           VERSION=${GITHUB_REF_NAME#v}
-          IMAGE_NAME=ghcr.io/${{ github.repository_owner }}/sonovel
-          echo "Building Docker image $IMAGE_NAME:$VERSION ..."
-          docker build -t $IMAGE_NAME:$VERSION -t $IMAGE_NAME:latest .
-          docker push $IMAGE_NAME:$VERSION
-          docker push $IMAGE_NAME:latest  
+          
+          # Docker Hub 镜像名称（替换 username 为你的 Docker Hub 用户名）
+          DOCKERHUB_IMAGE_NAME=${{ secrets.DOCKERHUB_USERNAME }}/sonovel
+          
+          echo "Building Docker image..."
+          
+          # 构建带多个标签的镜像
+          docker build \
+            -t $GHCR_IMAGE_NAME:$VERSION \
+            -t $GHCR_IMAGE_NAME:latest \
+            -t $DOCKERHUB_IMAGE_NAME:$VERSION \
+            -t $DOCKERHUB_IMAGE_NAME:latest \
+            .
+          
+          echo "Pushing to Docker Hub..."
+          docker push $DOCKERHUB_IMAGE_NAME:$VERSION
+          docker push $DOCKERHUB_IMAGE_NAME:latest
 
       # 输出镜像地址
       - name: Output image info
         run: |
-          IMAGE_NAME=ghcr.io/${{ github.repository_owner }}/sonovel
-          echo "Docker image published: ${IMAGE_NAME}:$VERSION"
+          VERSION=${GITHUB_REF_NAME#v}
+          GHCR_IMAGE_NAME=ghcr.io/${{ github.repository_owner }}/sonovel
+          DOCKERHUB_IMAGE_NAME=${{ secrets.DOCKERHUB_USERNAME }}/sonovel
+          
+          echo "Docker images published:"
+          echo "- GitHub Container Registry:"
+          echo "  ${GHCR_IMAGE_NAME}:$VERSION"
+          echo "  ${GHCR_IMAGE_NAME}:latest"
+          echo "- Docker Hub:"
+          echo "  ${DOCKERHUB_IMAGE_NAME}:$VERSION"
+          echo "  ${DOCKERHUB_IMAGE_NAME}:latest"
