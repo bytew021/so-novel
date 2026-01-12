@@ -51,8 +51,6 @@ jobs:
           
           # 构建带多个标签的镜像
           docker build \
-            -t $GHCR_IMAGE_NAME:$VERSION \
-            -t $GHCR_IMAGE_NAME:latest \
             -t $DOCKERHUB_IMAGE_NAME:$VERSION \
             -t $DOCKERHUB_IMAGE_NAME:latest \
             .
