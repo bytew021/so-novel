@@ -10,8 +10,8 @@ import com.pcdd.sonovel.core.AppConfigLoader;
 import com.pcdd.sonovel.core.Source;
 import com.pcdd.sonovel.handle.SearchResultsHandler;
 import com.pcdd.sonovel.model.AppConfig;
-import com.pcdd.sonovel.model.Book;
 import com.pcdd.sonovel.model.Rule;
+import com.pcdd.sonovel.model.Rule.Book;
 import com.pcdd.sonovel.model.SearchResult;
 import com.pcdd.sonovel.parse.BookParser;
 import com.pcdd.sonovel.parse.SearchParser;
@@ -49,6 +49,7 @@ public class SingleSearchAction {
         Book book = new BookParser(config).parse(url);
         SearchResult sr = SearchResult.builder()
                 .sourceId(config.getSourceId())
+                .sourceName(rule.getName())
                 .url(url)
                 .bookName(book.getBookName())
                 .author(book.getAuthor())
@@ -73,9 +74,9 @@ public class SingleSearchAction {
         StopWatch stopWatch = new StopWatch();
         stopWatch.start();
 
-        List<SearchResult> searchResults = "proxy-rules.json".equals(config.getActiveRules()) && config.getSourceId() == 2
+        List<SearchResult> searchResults = "proxy-required.json".equals(config.getActiveRules()) && config.getSourceId() == 2
                 ? new SearchParserQuanben5(config).parse(keyword)
-                : new SearchParser(config).parse(keyword, true);
+                : new SearchParser(config).parse(keyword);
 
         stopWatch.stop();
         Console.log("<== 搜索到 {} 条记录，耗时 {} s", searchResults.size(),
@@ -83,7 +84,7 @@ public class SingleSearchAction {
 
         return AppConfigLoader.APP_CONFIG.getSearchFilter() == 1
                 ? SearchResultsHandler.filterSort(searchResults, keyword)
-                : SearchResultsHandler.sort(searchResults);
+                : searchResults;
     }
 
     @SneakyThrows

@@ -6,7 +6,8 @@ import cn.hutool.core.io.file.FileReader;
 import cn.hutool.core.io.file.FileWriter;
 import cn.hutool.core.util.ReUtil;
 import cn.hutool.core.util.StrUtil;
-import com.pcdd.sonovel.model.Book;
+import cn.hutool.core.util.ZipUtil;
+import com.pcdd.sonovel.model.Rule.Book;
 import com.pcdd.sonovel.util.FileUtils;
 
 import java.io.File;
@@ -36,6 +37,10 @@ public class HtmlTocHandler implements PostProcessingHandler {
         fw.writeLines(lines);
 
         downloadCover(book, saveDir);
+
+        // 将 HTML 目录打包为 zip 文件，便于 WebUI 下载
+        String zipPath = saveDir.getAbsolutePath();
+        ZipUtil.zip(zipPath);
     }
 
 }

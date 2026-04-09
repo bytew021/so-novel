@@ -2,16 +2,21 @@ package com.pcdd.sonovel.parse;
 
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.collection.ListUtil;
+import cn.hutool.core.lang.Assert;
 import cn.hutool.core.lang.Console;
 import cn.hutool.core.lang.ConsoleTable;
 import cn.hutool.core.util.ArrayUtil;
 import cn.hutool.core.util.ReUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.core.util.URLUtil;
+import cn.hutool.http.HttpUtil;
 import com.pcdd.sonovel.context.HttpClientContext;
 import com.pcdd.sonovel.core.Source;
-import com.pcdd.sonovel.handle.SearchResultsHandler;
-import com.pcdd.sonovel.model.*;
+import com.pcdd.sonovel.model.AppConfig;
+import com.pcdd.sonovel.model.ContentType;
+import com.pcdd.sonovel.model.Rule;
+import com.pcdd.sonovel.model.Rule.Book;
+import com.pcdd.sonovel.model.SearchResult;
 import com.pcdd.sonovel.util.ChineseConverter;
 import com.pcdd.sonovel.util.CrawlUtils;
 import com.pcdd.sonovel.util.JsoupUtils;
@@ -41,10 +46,6 @@ public class SearchParser extends Source {
         super(config);
     }
 
-    public List<SearchResult> parse(String keyword, boolean isSort) {
-        return isSort ? SearchResultsHandler.sort(parse(keyword)) : parse(keyword);
-    }
-
     @SneakyThrows
     public List<SearchResult> parse(String keyword) {
         Rule.Search r = this.rule.getSearch();
@@ -61,7 +62,9 @@ public class SearchParser extends Source {
         Response resp;
         Document document;
         try {
-            Request.Builder builder = new Request.Builder().url(r.getUrl().formatted(keyword));
+            String searchUrl = r.getUrl().formatted(keyword);
+            Request.Builder builder = new Request.Builder()
+                    .url(searchUrl);
 
             if (StrUtil.isNotBlank(r.getCookies())) {
                 builder.addHeader("Cookie", r.getCookies());
@@ -72,6 +75,13 @@ public class SearchParser extends Source {
 
             resp = CrawlUtils.request(httpClient, builder, r.getTimeout());
             document = Jsoup.parse(resp.peekBody(Long.MAX_VALUE).string(), r.getBaseUri());
+
+            if (CrawlUtils.hasCf(document)) {
+                Assert.isTrue(StrUtil.isNotEmpty(config.getCfBypass()), "🤖 检测到搜索页 {} 存在 Cloudflare 真人验证，但未设置 cf-bypass 配置项，故跳过", searchUrl);
+                Console.log("🤖 检测到搜索页 {} 存在 Cloudflare 真人验证，正在尝试绕过...", searchUrl);
+                String html = HttpUtil.get("%s/html?url=%s".formatted(this.config.getCfBypass(), searchUrl));
+                document = Jsoup.parse(html);
+            }
 
         } catch (Exception e) {
             Console.error(render("<== 书源 {} ({}) 搜索解析出错: {}", "red"),
@@ -96,7 +106,7 @@ public class SearchParser extends Source {
         // 一次性获取分页 URL，不考虑逐个点击下一页的情况
         for (Element e : nextPageUrls) {
             String href = e.absUrl("href");
-            // 中文解码，针对69書吧
+            // 中文解码，便于调试
             urls.add(URLUtil.decode(href));
         }
         // 使用并行流处理分页 URL
@@ -116,9 +126,9 @@ public class SearchParser extends Source {
             // 搜索结果页 DOM
             Document document;
             if (resp == null) {
-                try (Response resp2 = CrawlUtils.request(httpClient, url, r.getTimeout())) {
+                try (Response newResp = CrawlUtils.request(httpClient, url, r.getTimeout())) {
                     // peekBody 不会关闭原body流，可以拿一份副本出来
-                    document = Jsoup.parse(resp2.peekBody(Long.MAX_VALUE).string(), r.getBaseUri());
+                    document = Jsoup.parse(newResp.peekBody(Long.MAX_VALUE).string(), r.getBaseUri());
                 }
             } else {
                 document = Jsoup.parse(resp.peekBody(Long.MAX_VALUE).string(), r.getBaseUri());
@@ -138,6 +148,7 @@ public class SearchParser extends Source {
 
                 SearchResult sr = SearchResult.builder()
                         .sourceId(this.rule.getId())
+                        .sourceName(this.rule.getName())
                         .url(bookUrl)
                         .bookName(book.getBookName())
                         .author(book.getAuthor())
@@ -172,6 +183,7 @@ public class SearchParser extends Source {
 
                 SearchResult sr = SearchResult.builder()
                         .sourceId(this.rule.getId())
+                        .sourceName(this.rule.getName())
                         .url(href)
                         .bookName(bookName)
                         .author(author)

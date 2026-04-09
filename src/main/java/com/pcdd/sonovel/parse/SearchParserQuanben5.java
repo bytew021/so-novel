@@ -5,10 +5,10 @@ import cn.hutool.core.lang.Console;
 import cn.hutool.core.text.UnicodeUtil;
 import cn.hutool.core.util.ReUtil;
 import cn.hutool.core.util.StrUtil;
+import cn.hutool.http.Header;
 import cn.hutool.http.HtmlUtil;
 import com.pcdd.sonovel.context.HttpClientContext;
 import com.pcdd.sonovel.core.Source;
-import com.pcdd.sonovel.handle.SearchResultsHandler;
 import com.pcdd.sonovel.model.AppConfig;
 import com.pcdd.sonovel.model.ContentType;
 import com.pcdd.sonovel.model.Rule;
@@ -51,7 +51,7 @@ public class SearchParserQuanben5 extends Source {
             String url = String.format(ruleSearch.getUrl(), keyword, paramB);
             Request request = new Request.Builder()
                     .url(url)
-                    .addHeader("Referer", "https://quanben5.com/search.html")
+                    .addHeader(Header.REFERER.toString(), "https://quanben5.com/search.html")
                     .build();
 
             try (Response resp = httpClient.newCall(request).execute()) { // 使用client.newCall(request).execute()
@@ -68,7 +68,7 @@ public class SearchParserQuanben5 extends Source {
                 String html = StrUtil.strip(content, "\"");
 
                 Document document = Jsoup.parse(html, ruleSearch.getBaseUri());
-                return SearchResultsHandler.sort(getSearchResults(document));
+                return getSearchResults(document);
             }
         } catch (Exception e) {
             Console.error(e.getMessage());
@@ -88,6 +88,7 @@ public class SearchParserQuanben5 extends Source {
 
             SearchResult sr = SearchResult.builder()
                     .sourceId(this.rule.getId())
+                    .sourceName(this.rule.getName())
                     .url(href)
                     .bookName(bookName)
                     .author(author)

@@ -5,7 +5,7 @@ import cn.hutool.core.io.resource.ResourceUtil;
 import cn.hutool.core.lang.Console;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.http.HttpUtil;
-import com.pcdd.sonovel.model.Book;
+import com.pcdd.sonovel.model.Rule.Book;
 import com.pcdd.sonovel.util.FileUtils;
 import io.documentnode.epub4j.domain.*;
 import io.documentnode.epub4j.epub.EpubWriter;
@@ -47,7 +47,7 @@ public class EpubMergeHandler implements PostProcessingHandler {
             // 添加封面页
             book.addSection("封面", new Resource(ResourceUtil.readBytes("templates/chapter_cover.html"), COVER_NAME));
         } catch (Exception e) {
-            Console.error(render("封面 {} 下载失败：{}", "red"), b.getCoverUrl(), e.getMessage());
+            Console.error(render("EPUB 最新封面 {} 下载失败：{}", "red"), b.getCoverUrl(), e.getMessage());
         }
         // 不设置会导致 Apple Books 无法使用苹方字体
         meta.setLanguage("zh");

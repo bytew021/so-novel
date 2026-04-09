@@ -2,6 +2,8 @@ package com.pcdd.sonovel.parse;
 
 import cn.hutool.core.lang.Assert;
 import cn.hutool.core.lang.Console;
+import cn.hutool.core.util.StrUtil;
+import cn.hutool.http.HttpUtil;
 import com.pcdd.sonovel.context.HttpClientContext;
 import com.pcdd.sonovel.core.ChapterRenderer;
 import com.pcdd.sonovel.core.Source;
@@ -42,7 +44,6 @@ public class ChapterParser extends Source {
             LogUtils.info("正在下载: 【{}】 间隔 {} ms", chapter.getTitle(), interval);
 
             String content = fetchContent(chapter.getUrl(), interval);
-            Assert.notEmpty(content, "正文内容为空");
             chapter.setContent(content);
 
             // 确保简繁互转最后调用
@@ -68,17 +69,16 @@ public class ChapterParser extends Source {
                         chapter.getTitle(), attempt, config.getMaxRetries(), interval, ex.getMessage());
 
                 String content = fetchContent(chapter.getUrl(), interval);
-                Assert.notEmpty(content, "正文内容为空");
                 chapter.setContent(content);
 
-                LogUtils.info("重试成功: 【{}】", chapter.getTitle());
+                LogUtils.info("✅ 重试成功: 【{}】", chapter.getTitle());
                 return chapterRenderer.process(chapter);
 
             } catch (Exception e) {
                 LogUtils.warn("第 {} 次重试失败: 【{}】 原因: {}", attempt, chapter.getTitle(), e.getMessage());
                 // 最终失败时记录日志
                 if (attempt == config.getMaxRetries()) {
-                    LogUtils.error(e, "下载失败章节: 【{}】({})\t原因: {}", chapter.getTitle(), chapter.getUrl(), e.getMessage());
+                    LogUtils.error(e, "❌ 下载失败章节: 【{}】({})\t原因: {}", chapter.getTitle(), chapter.getUrl(), e.getMessage());
                 }
             }
         }
@@ -111,7 +111,11 @@ public class ChapterParser extends Source {
             doc = Jsoup.parse(is, null, r.getBaseUri());
         }
 
-        return JsoupUtils.selectAndInvokeJs(doc, r.getContent(), ContentType.HTML);
+        doc = handleCloudflareBypass(doc, url);
+        String content = JsoupUtils.selectAndInvokeJs(doc, r.getContent(), ContentType.HTML);
+        Assert.notEmpty(content, "正文内容为空:\n{}\n", doc);
+
+        return content;
     }
 
     @SneakyThrows
@@ -126,7 +130,12 @@ public class ChapterParser extends Source {
                 // null 表示自动检测编码
                 doc = Jsoup.parse(is, null, r.getBaseUri());
             }
-            contentBuilder.append(JsoupUtils.selectAndInvokeJs(doc, r.getContent(), ContentType.HTML));
+
+            doc = handleCloudflareBypass(doc, nextUrl);
+
+            String content = JsoupUtils.selectAndInvokeJs(doc, r.getContent(), ContentType.HTML);
+            Assert.notEmpty(content, "正文内容为空:\n{}\n", doc);
+            contentBuilder.append(content);
 
             // 获取下一页按钮元素
             Elements nextEls = JsoupUtils.select(doc, r.getNextPage());
@@ -143,13 +152,23 @@ public class ChapterParser extends Source {
         return contentBuilder.toString();
     }
 
+    private Document handleCloudflareBypass(Document doc, String url) {
+        if (CrawlUtils.hasCf(doc)) {
+            Assert.isTrue(StrUtil.isNotEmpty(config.getCfBypass()), "🤖 检测到章节页 {} 存在 Cloudflare 真人验证，但未设置 cf-bypass 配置项，故跳过", url);
+            LogUtils.info("🤖 检测到章节页 {} 存在 Cloudflare 真人验证，正在尝试绕过...", url);
+            String html = HttpUtil.get("%s/html?url=%s".formatted(this.config.getCfBypass(), url));
+            doc = Jsoup.parse(html);
+        }
+        return doc;
+    }
+
     private String resolveNextUrl(Document doc, Elements nextEls, Rule.Chapter r) {
         // 从 JS 获取下一页链接
         if (r.getNextPageInJs() != null) {
             return JsoupUtils.selectAndInvokeJs(doc, r.getNextPageInJs(), ContentType.HTML);
         }
         if (nextEls.isEmpty()) {
-            LogUtils.error("分页章节正文获取为空，可能被限流！出错链接：{} 链接内容：{}", doc.baseUri(), doc.body().text());
+            LogUtils.error("分页章节正文获取为空，可能被限流！出错链接: {} 链接内容:\n{}\n", doc.baseUri(), doc);
             return null;
         }
         // 从按钮获取下一页链接

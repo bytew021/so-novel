@@ -16,11 +16,12 @@ import com.pcdd.sonovel.core.AppConfigLoader;
 import com.pcdd.sonovel.core.OkHttpClientFactory;
 import com.pcdd.sonovel.core.Source;
 import com.pcdd.sonovel.model.AppConfig;
-import com.pcdd.sonovel.model.Book;
 import com.pcdd.sonovel.model.Rule;
+import com.pcdd.sonovel.model.Rule.Book;
 import com.pcdd.sonovel.model.SearchResult;
 import com.pcdd.sonovel.parse.SearchParser;
 import com.pcdd.sonovel.parse.SearchParserQuanben5;
+import com.pcdd.sonovel.util.LangType;
 import com.pcdd.sonovel.util.RandomUA;
 import com.pcdd.sonovel.util.SourceUtils;
 import lombok.Data;
@@ -58,7 +59,7 @@ class BookSourceQualityTest {
     static {
         HttpClientContext.set(OkHttpClientFactory.create(APP_CONFIG, true));
         ConsoleLog.setLevel(Level.OFF);
-        APP_CONFIG.setLanguage("zh_CN");
+        APP_CONFIG.setLanguage(LangType.ZH_CN);
     }
 
     void qidianRankInit(Map<String, String> map) {

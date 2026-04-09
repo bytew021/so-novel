@@ -1,21 +1,18 @@
-## v1.9.8 (2025-12-25)
+## v1.10.1 (2026-04-05)
 
 ### ✨ Features
 
-- 改善批量下载体验
+- WebUI 功能增强 #311
 
 ### 🐛 Bug Fixes
 
-- 修复下载异常
-- 修复无法使用全本小说网进行批量下载
-- 修复 #294
+- 修复 WebUI 跟随服务器配置的下载格式错误
+- 修复设置 [cookie] qidian 后，封面仍下载失败 #315
 
 ### ♻️ Refactor
 
-- 更新 WebUI
-- 更新 Web 服务启动日志
-
-### 🔧 Configuration
-
-- 更新默认并发数
-- 更新 config.ini 注释
+- 优化 HtmlTocHandler.java, CrawlerPostHandler.java
+- 更新 CoverUpdaterTest.java
+- 更新 maven-compiler-plugin configuration
+- 重构并调用 FileUtils#toAbsolutePath()
+- 移除 VersionServlet.java

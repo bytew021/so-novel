@@ -1,40 +1,5 @@
 [
   {
-    "url": "http://www.xhytd.com/",
-    "name": "黄易天地",
-    "comment": "搜索新加了CF，仅限大陆IP",
-    "search": {
-      "disabled": true,
-      "url": "http://www.xhytd.com/search.html?name=%s",
-      "method": "get",
-      "result": "#main > div.novelslist2 > ul > li",
-      "bookName": "span.s2.wid > a",
-      "author": "span.s4.wid > a",
-      "latestChapter": "span.s3.wid3 > a",
-      "lastUpdateTime": "span.s6.wid6"
-    },
-    "book": {
-      "bookName": "meta[property=\"og:novel:book_name\"]",
-      "author": "meta[property=\"og:novel:author\"]",
-      "intro": "meta[name=\"description\"]",
-      "category": "meta[property=\"og:novel:category\"]",
-      "coverUrl": "meta[property=\"og:image\"]",
-      "latestChapter": "meta[property=\"og:novel:latest_chapter_name\"]",
-      "lastUpdateTime": "meta[property=\"og:novel:update_time\"]"
-    },
-    "toc": {
-      "item": "#list > dl > dt:nth-of-type(2) ~ dd > a"
-    },
-    "chapter": {
-      "title": "h1",
-      "content": "#content",
-      "paragraphTagClosed": false,
-      "paragraphTag": "<br>+",
-      "filterTxt": "",
-      "filterTag": "p div"
-    }
-  },
-  {
     "url": "https://cn.ttkan.co/",
     "name": "天天看小说",
     "comment": "现无法搜索，搜索有限流(Read timed out)",
@@ -79,15 +44,7 @@
       "nextPage": "#pagelink > a:not(.first):not(.last)"
     },
     "book": {
-      "url": "https://www.96dushu.com/book/(.*?)/",
-      "bookName": "meta[property=\"og:novel:book_name\"]",
-      "author": "meta[property=\"og:novel:author\"]",
-      "intro": "meta[property=\"og:description\"]",
-      "category": "meta[property=\"og:novel:category\"]",
-      "coverUrl": "meta[property=\"og:image\"]",
-      "latestChapter": "meta[property=\"og:novel:latest_chapter_name\"]",
-      "lastUpdateTime": "meta[property=\"og:novel:update_time\"]",
-      "status": "meta[property=\"og:novel:status\"]"
+      "url": "https://www.96dushu.com/book/(.*?)/"
     },
     "toc": {
       "item": "#chapterList > li > a"
@@ -117,15 +74,7 @@
       "intro": "dl > dd"
     },
     "book": {
-      "url": "https://www.xshbook.com/0/(.*?)/",
-      "bookName": "meta[property=\"og:novel:book_name\"]",
-      "author": "meta[property=\"og:novel:author\"]",
-      "intro": "meta[property=\"og:description\"]",
-      "category": "meta[property=\"og:novel:category\"]",
-      "coverUrl": "meta[property=\"og:image\"]",
-      "latestChapter": "meta[property=\"og:novel:latest_chapter_name\"]",
-      "lastUpdateTime": "meta[property=\"og:novel:update_time\"]",
-      "status": "meta[property=\"og:novel:status\"]"
+      "url": "https://www.xshbook.com/0/(.*?)/"
     },
     "toc": {
       "item": "#list > dl > dd > a"

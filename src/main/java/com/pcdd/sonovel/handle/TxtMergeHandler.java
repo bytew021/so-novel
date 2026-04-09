@@ -6,7 +6,7 @@ import cn.hutool.core.util.CharsetUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.http.HtmlUtil;
 import com.pcdd.sonovel.model.AppConfig;
-import com.pcdd.sonovel.model.Book;
+import com.pcdd.sonovel.model.Rule.Book;
 import com.pcdd.sonovel.util.FileUtils;
 import lombok.AllArgsConstructor;
 
@@ -28,10 +28,8 @@ public class TxtMergeHandler implements PostProcessingHandler {
                 config.getDownloadPath() + File.separator, book.getBookName(), book.getAuthor());
         // 删除旧的同名 txt 文件
         FileUtil.del(outputPath);
-
-        File outputFile = FileUtil.isAbsolutePath(outputPath)
-                ? FileUtil.touch(outputPath)
-                : FileUtil.touch(System.getProperty("user.dir"), outputPath);
+        String absolutePath = FileUtils.toAbsolutePath(outputPath);
+        File outputFile = FileUtil.touch(absolutePath);
 
         // 获取 TXT 编码，默认 UTF-8
         Charset charset = CharsetUtil.parse(config.getTxtEncoding());

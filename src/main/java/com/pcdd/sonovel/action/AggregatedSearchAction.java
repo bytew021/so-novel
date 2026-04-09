@@ -51,6 +51,7 @@ public class AggregatedSearchAction {
 
     @SneakyThrows
     public static List<SearchResult> getSearchResults(String kw) {
+        Console.log("<== 搜索关键字 “{}”", kw);
         List<SearchResult> results = Collections.synchronizedList(new ArrayList<>());
         List<Source> searchableSources = SourceUtils.getSearchableSources();
         CountDownLatch latch = new CountDownLatch(searchableSources.size());
@@ -59,7 +60,7 @@ public class AggregatedSearchAction {
             for (Source source : searchableSources) {
                 executor.execute(() -> {
                     try {
-                        List<SearchResult> res = "proxy-rules.json".equals(source.config.getActiveRules()) && source.config.getSourceId() == 2
+                        List<SearchResult> res = "proxy-required.json".equals(source.config.getActiveRules()) && source.config.getSourceId() == 2
                                 ? new SearchParserQuanben5(source.config).parse(kw)
                                 : new SearchParser(source.config).parse(kw);
                         if (CollUtil.isNotEmpty(res)) {
@@ -78,7 +79,7 @@ public class AggregatedSearchAction {
             latch.await();
             return AppConfigLoader.APP_CONFIG.getSearchFilter() == 1
                     ? SearchResultsHandler.filterSort(results, kw)
-                    : SearchResultsHandler.sort(results);
+                    : results;
         }
     }
 
