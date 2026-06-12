@@ -1,5 +1,6 @@
 package com.pcdd.sonovel.core;
 
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.date.StopWatch;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.lang.Console;
@@ -49,8 +50,9 @@ public class Crawler {
     public double crawl(String bookUrl) {
         TocParser tocParser = new TocParser(config);
         List<Chapter> toc = tocParser.parseAll(bookUrl);
-        if (toc.isEmpty()) {
-            Console.log("<== 目录为空，中止下载");
+        // 大概率是部分书源的目录页有反爬导致
+        if (CollUtil.isEmpty(toc)) {
+            Console.error("<== 源站章节目录为空，中止下载");
             return 0;
         }
         Console.log("<== 共计 {} 章", toc.size());
@@ -62,6 +64,7 @@ public class Crawler {
      *
      * @param bookUrl 详情页链接
      * @param toc     章节目录
+     * @return 总耗时
      */
     @SneakyThrows
     public double crawl(String bookUrl, List<Chapter> toc) {
@@ -82,31 +85,36 @@ public class Crawler {
             return 0;
         }
 
+        // 并发数最大值为 100
+        if (config.getConcurrency() > 100) {
+            config.setConcurrency(100);
+        }
+
         // IO 密集型任务，不要和 CPU 核数绑定
         int maxConcurrent = config.getConcurrency() == -1
                 ? Math.min(50, toc.size())
                 : Math.min(config.getConcurrency(), toc.size());
 
-        Console.log("<== 开始下载《{}》({}) 共计 {} 章 | 最大并发：{}",
-                book.getBookName(), book.getAuthor(), toc.size(), maxConcurrent);
-        LogUtils.info("开始下载:《{}》({}) 共计 {} 章 | 最大并发：{}",
+        LogUtils.infoConsole("开始下载:《{}》({}) 共计 {} 章 | 最大并发 {}",
                 book.getBookName(), book.getAuthor(), toc.size(), maxConcurrent);
 
         StopWatch stopWatch = new StopWatch();
         stopWatch.start();
         ChapterParser chapterParser = new ChapterParser(config);
-
         ProgressBar progressBar = null;
-        try {
-            progressBar = ProgressBar.builder()
-                    .setTaskName("Downloading...")
-                    .setInitialMax(toc.size())
-                    .setMaxRenderedLength(100)
-                    .setUpdateIntervalMillis(100)
-                    .showSpeed()
-                    .build();
-        } catch (Exception e) {
-            Console.error("下载进度条初始化失败，已自动切换为静默下载");
+
+        if (config.getEnableProgressbar() == 1) {
+            try {
+                progressBar = ProgressBar.builder()
+                        .setTaskName("Downloading...")
+                        .setInitialMax(toc.size())
+                        .setMaxRenderedLength(100)
+                        .setUpdateIntervalMillis(100)
+                        .showSpeed()
+                        .build();
+            } catch (Exception e) {
+                Console.error("下载进度条初始化失败，已切换为静默下载");
+            }
         }
 
         ProgressBar finalProgressBar = progressBar;
@@ -122,7 +130,7 @@ public class Crawler {
                     finalProgressBar.stepTo(currentIndex);
                 }
 
-                if (config.getWebEnabled() == 1 && (currentIndex % 100 == 0 || currentIndex == toc.size())) {
+                if (config.getWebEnabled() == 1 && (currentIndex % 50 == 0 || currentIndex == toc.size())) {
                     DownloadProgressSseServlet.sendProgress(JSONUtil.toJsonStr(DownloadProgressInfo.builder()
                             .type("download-progress")
                             .index(currentIndex)

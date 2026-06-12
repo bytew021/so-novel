@@ -5,6 +5,7 @@ import cn.hutool.http.HtmlUtil;
 import com.pcdd.sonovel.model.AppConfig;
 import com.pcdd.sonovel.model.Chapter;
 import com.pcdd.sonovel.util.CrawlUtils;
+import com.pcdd.sonovel.util.JsoupUtils;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -91,20 +92,18 @@ public class ChapterFilter extends Source {
             }
 
             if (applyEscapeFilter) {
-                // 替换 &..; (HTML 字符实体引用)，主要是 &nbsp;，可能会导致 ibooks 章节报错
+                // 替换 &..; (HTML 字符实体引用，如 &nbsp;)，可能会导致 ibooks 章节报错
                 this.content = HTML_ENTITY_PATTERN.matcher(this.content).replaceAll("");
             }
 
             if (applyAdsFilter) {
                 String filteredContent = this.content.replaceAll(rule.getChapter().getFilterTxt(), "");
-                this.content = HtmlUtil.removeHtmlTag(filteredContent, StrUtil.splitToArray(rule.getChapter().getFilterTag(), " "));
+                // filterTag 格式需修改为 div.tt-title, #title, [style]
+                this.content = JsoupUtils.removeTags(filteredContent, rule.getChapter().getFilterTag());
             }
 
-            // 确保在在 EscapeFilter、AdsFilter 之执行
-            this.content = StrUtil.cleanBlank(this.content);
-
+            // 删除正文开头的标题，Pattern.quote：将章节名当作纯文本，自动转义正则元字符 [、(、. 防止章节名意外破坏正则
             if (applyDuplicateTitleFilter) {
-                // 删除正文开头的标题，Pattern.quote：将章节名当作纯文本，自动转义正则元字符 [、(、. 防止章节名意外破坏正则
                 String regex = "^(\\s|<[^>]+>)*(%s|%s)".formatted(
                         Pattern.quote(this.title),
                         Pattern.quote(StrUtil.cleanBlank(this.title))
@@ -118,10 +117,12 @@ public class ChapterFilter extends Source {
                 }
             }
 
+            // 删除全部空 tag，例如 <p></p>
+            this.content = HtmlUtil.cleanEmptyTag(this.content);
+
             return Chapter.builder()
                     .title(this.title)
-                    // 删除全部空标签，例如 <p></p>
-                    .content(HtmlUtil.cleanEmptyTag(this.content))
+                    .content(this.content)
                     .build();
         }
     }

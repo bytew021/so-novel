@@ -37,12 +37,13 @@
 | [老幺小说网](https://www.laoyaoxs.org/)   | ✅     | ❌      | ✅    | 章节限流，正文段落会乱序                  |
 | [速读谷](https://www.sudugu.org/)       | ✅     | ✅      | ✅    | 章节限流，线程数 1                    |
 
-`non-search.json`：不支持搜索的书源，需要输入详情页地址下载
+`non-search.json`：不支持搜索的书源，需要输入书籍详情页地址下载
 
-| 书源名称                            | 大陆 IP | 非大陆 IP | ⚠️ 需要注意      |
-|---------------------------------|-------|--------|--------------|
-| [天天看小说](https://cn.ttkan.co/)   | ✅     | ✅      | 曾经可以搜索       |
-| [小说虎](https://www.xshbook.com/) | ✅     | ✅      | 正文广告较多，需手动过滤 |
+| 书源名称                               | 大陆 IP | 非大陆 IP | ⚠️ 需要注意      |
+|------------------------------------|-------|--------|--------------|
+| [小说虎](https://www.xiaoshuohu.com/) | ✅     | ✅      | 正文广告较多，需手动过滤 |
+| [天天看小说](https://cn.ttkan.co/)      | ✅     | ✅      | 曾经可以搜索       |
+| [小说之家](https://xszj.org/)          | ✅     | ✅      | 章节限流         |
 
 `cloudflare.json`：有 Cloudflare 保护的书源，需在 config.ini 设置 cf-bypass
 
@@ -82,8 +83,17 @@ port = 改为你的代理端口
 4. 检查爬取频率等参数是否合理，否则会被部分书源封禁 IP 或限流
 5. 如果按照以上方法还是不行，大概率是书源挂了（比如更换域名，增加了云防护等）
 
+## 切换书源集
+
+修改 `config.ini` 的 `active-rules`，改为上述 json 的全文件名
+
+```ini
+[source]
+active-rules = xx.json
+```
+
 ## 自定义书源
 
-参考规则文件，照猫画虎
+参考 rules 目录下的 `rule-template.json5`(模板文件) 和 `main.json`(书源集)
 
 支持语法: css selector, xpath, javascript, regex

@@ -36,6 +36,7 @@ public class ChapterRenderer {
             case "epub", "html", "pdf" -> renderTemplateFormat(filtered.getTitle(), content, config.getExtName());
             default -> content;
         });
+
         return chapter;
     }
 
