@@ -23,14 +23,45 @@ jobs:
         run: |
           git fetch upstream --tags
 
-      - name: Get the latest tag
+      - name: Get the latest tag not existing locally
         id: latest_tag
         run: |
-          # 获取最新的 tag（按版本号排序）
-          LATEST_TAG=$(git tag -l "v*" --sort=-v:refname | head -n 1)
-          echo "Latest tag: $LATEST_TAG"
-          echo "tag=$LATEST_TAG" >> $GITHUB_OUTPUT
+          # 获取所有 upstream 的 tags（按版本号排序）
+          UPSTREAM_TAGS=$(git ls-remote --tags upstream | grep -o 'v[0-9][^^{}]*' | sort -Vr)
+          
+          # 获取本地已有的 tags
+          LOCAL_TAGS=$(git tag -l "v*")
+          
+          # 找到最新的、本地不存在的 tag
+          LATEST_NEW_TAG=""
+          for tag in $UPSTREAM_TAGS; do
+            if ! echo "$LOCAL_TAGS" | grep -q "^$tag$"; then
+              LATEST_NEW_TAG=$tag
+              break
+            fi
+          done
+          
+          if [ -z "$LATEST_NEW_TAG" ]; then
+            echo "No new tags found, skipping..."
+            echo "tag=" >> $GITHUB_OUTPUT
+            echo "has_new=false" >> $GITHUB_OUTPUT
+          else
+            echo "Latest new tag: $LATEST_NEW_TAG"
+            echo "tag=$LATEST_NEW_TAG" >> $GITHUB_OUTPUT
+            echo "has_new=true" >> $GITHUB_OUTPUT
+          fi
 
-      - name: Push only the latest tag
+      - name: Push the new tag to your fork
+        if: steps.latest_tag.outputs.has_new == 'true'
         run: |
-          git push origin ${{ steps.latest_tag.outputs.tag }}
+          TAG=${{ steps.latest_tag.outputs.tag }}
+          echo "Pushing new tag: $TAG"
+          git push origin $TAG
+
+      - name: Log result
+        run: |
+          if [ "${{ steps.latest_tag.outputs.has_new }}" == "true" ]; then
+            echo "✅ New tag synced: ${{ steps.latest_tag.outputs.tag }}"
+          else
+            echo "ℹ️ No new tags found, nothing to sync"
+          fi
