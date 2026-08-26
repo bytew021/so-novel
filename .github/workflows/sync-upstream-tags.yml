@@ -19,28 +19,44 @@ jobs:
         run: |
           git remote add upstream https://github.com/freeok/so-novel.git
 
-      - name: Fetch upstream tags
+      - name: Fetch upstream tags (force overwrite)
         run: |
-          git fetch upstream --tags
+          # 强制获取上游 tags，覆盖本地冲突的 tags
+          git fetch upstream --tags --force
+          echo "✅ Fetch completed successfully"
 
-      - name: Find and push latest new tag
+      - name: Find latest new tag
+        id: check
         run: |
-          # 获取本地所有 tags
+          # 获取本地 tags
           LOCAL_TAGS=$(git tag -l "v*")
-          echo "Local tags count: $(echo "$LOCAL_TAGS" | wc -l)"
           
-          # 获取上游最新 tag（按版本号排序取第一个）
+          # 获取上游最新 tag
           LATEST_TAG=$(git ls-remote --tags upstream | grep -o 'v[0-9][^^{}]*' | sort -V | tail -n 1)
           echo "Latest upstream tag: $LATEST_TAG"
+          echo "latest_tag=$LATEST_TAG" >> $GITHUB_OUTPUT
           
-          # 检查本地是否已存在
+          # 检查是否已存在
           if echo "$LOCAL_TAGS" | grep -q "^$LATEST_TAG$"; then
-            echo "Tag $LATEST_TAG already exists locally, skipping..."
-            exit 0
+            echo "tag_exists=true" >> $GITHUB_OUTPUT
+            echo "ℹ️ Tag $LATEST_TAG already exists locally, skipping push"
+          else
+            echo "tag_exists=false" >> $GITHUB_OUTPUT
+            echo "✅ New tag found: $LATEST_TAG"
           fi
-          
-          # 推送最新 tag
-          echo "Pushing new tag: $LATEST_TAG"
-          git push origin $LATEST_TAG
-          
-          echo "✅ Successfully synced: $LATEST_TAG"
+
+      - name: Push latest tag
+        if: steps.check.outputs.tag_exists == 'false'
+        run: |
+          TAG=${{ steps.check.outputs.latest_tag }}
+          echo "📦 Pushing new tag: $TAG"
+          git push origin $TAG
+          echo "✅ Successfully synced: $TAG"
+
+      - name: Log result
+        run: |
+          if [ "${{ steps.check.outputs.tag_exists }}" == "true" ]; then
+            echo "ℹ️ No new tags to sync"
+          else
+            echo "✅ Synced: ${{ steps.check.outputs.latest_tag }}"
+          fi
