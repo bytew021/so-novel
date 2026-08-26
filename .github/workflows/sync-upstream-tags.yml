@@ -19,15 +19,18 @@ jobs:
         run: |
           git remote add upstream https://github.com/freeok/so-novel.git
 
-      - name: Fetch and get latest tag from upstream
+      - name: Fetch tags from upstream
         run: |
           git fetch upstream --tags
-          # 获取最新的 tag
-          LATEST_TAG=$(git describe --tags $(git rev-list --tags --max-count=1))
-          echo "Latest tag: $LATEST_TAG"
-          echo "LATEST_TAG=$LATEST_TAG" >> $GITHUB_ENV
 
-      - name: Push only the latest tag to your fork
+      - name: Get the latest tag
+        id: latest_tag
         run: |
-          # 只推送最新的 tag
-          git push origin ${{ env.LATEST_TAG }}
+          # 获取最新的 tag（按版本号排序）
+          LATEST_TAG=$(git tag -l "v*" --sort=-v:refname | head -n 1)
+          echo "Latest tag: $LATEST_TAG"
+          echo "tag=$LATEST_TAG" >> $GITHUB_OUTPUT
+
+      - name: Push only the latest tag
+        run: |
+          git push origin ${{ steps.latest_tag.outputs.tag }}
