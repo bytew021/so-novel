@@ -19,30 +19,33 @@ jobs:
         run: |
           git remote add upstream https://github.com/freeok/so-novel.git
 
-      # 关键改动：fetch 时清理本地残留的远程 tag 引用
-      - name: Fetch upstream tags with prune
+      # 关键：fetch 时清理本地已不存在的远程引用
+      - name: Fetch and prune all
         run: |
-          git fetch upstream --tags --prune-tags --force
-          echo "✅ Fetched and pruned tags from upstream"
+          # --prune 清理 origin 中已删除的引用
+          git fetch origin --prune --tags
+          # --prune-tags 清理 upstream 中已删除的引用
+          git fetch upstream --prune --prune-tags --tags --force
+          echo "✅ All tags pruned and fetched"
 
-      - name: Find latest tag not existing locally
+      - name: Find latest new tag
         id: check
         run: |
-          # 获取上游最新 tag（按版本号排序）
+          # 获取上游最新 tag
           LATEST_TAG=$(git ls-remote --tags upstream | grep -o 'v[0-9][^^{}]*' | sort -V | tail -n 1)
           echo "Latest upstream tag: $LATEST_TAG"
           echo "latest_tag=$LATEST_TAG" >> $GITHUB_OUTPUT
-
-          # 检查本地是否存在该 tag（现在本地已经过 prune，结果应该准确）
+          
+          # 检查本地是否存在（现在应该准确了）
           if git rev-parse "$LATEST_TAG" >/dev/null 2>&1; then
             echo "tag_exists=true" >> $GITHUB_OUTPUT
-            echo "ℹ️ Tag $LATEST_TAG exists in local repo"
+            echo "⚠️ Tag $LATEST_TAG already exists locally"
           else
             echo "tag_exists=false" >> $GITHUB_OUTPUT
-            echo "✅ Tag $LATEST_TAG does NOT exist locally"
+            echo "✅ Tag $LATEST_TAG is NEW"
           fi
 
-      - name: Push latest tag if new
+      - name: Push new tag
         if: steps.check.outputs.tag_exists == 'false'
         run: |
           TAG=${{ steps.check.outputs.latest_tag }}
