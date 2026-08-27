@@ -1,0 +1,51 @@
+name: Manual Force Sync Tag
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: '要强制同步的 tag 名称（如 v1.11.0）'
+        required: true
+        type: string
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout your fork
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Add upstream repository
+        run: |
+          git remote add upstream https://github.com/freeok/so-novel.git
+
+      - name: Force sync tag from upstream
+        run: |
+          TAG="${{ inputs.tag_name }}"
+          echo "📦 Force syncing tag: $TAG"
+          
+          # 1. 从上游强制获取这个 tag
+          echo "➡️ Fetching $TAG from upstream..."
+          git fetch upstream tag $TAG --force
+          
+          # 2. 强制推送到您的 fork（覆盖已存在的）
+          echo "➡️ Force pushing $TAG to origin..."
+          git push origin $TAG --force
+          
+          echo "✅ Successfully force synced: $TAG"
+
+      - name: Verify sync
+        run: |
+          TAG="${{ inputs.tag_name }}"
+          echo "🔍 Verifying tag exists in origin..."
+          if git ls-remote origin $TAG | grep -q $TAG; then
+            echo "✅ Tag $TAG exists in origin"
+            echo "📋 Commit:"
+            git ls-remote origin $TAG
+          else
+            echo "❌ Tag $TAG not found in origin"
+            exit 1
+          fi
